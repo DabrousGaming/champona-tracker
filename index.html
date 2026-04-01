@@ -12,10 +12,6 @@
       color: white;
     }
 
-    h1 {
-      margin-top: 20px;
-    }
-
     table {
       margin: 20px auto;
       border-collapse: collapse;
@@ -78,30 +74,30 @@
 </table>
 
 <script>
+document.addEventListener("DOMContentLoaded", () => {
+
 let currentRep = 1;
 
-// Get today's date in stable format
+// Stable date format
 function getToday() {
-  return new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+  return new Date().toISOString().split("T")[0];
 }
 
-let today = getToday();
+const today = getToday();
 
 // Load saved data
 function loadData() {
   const savedDate = localStorage.getItem("date");
-  let savedReps = JSON.parse(localStorage.getItem("reps"));
+  let savedReps = JSON.parse(localStorage.getItem("reps") || "[]");
 
-  if (!savedReps) savedReps = [];
-
-  // Reset ONLY if date changed
+  // Reset if new day
   if (savedDate !== today) {
     localStorage.setItem("date", today);
     localStorage.setItem("reps", JSON.stringify([]));
     savedReps = [];
   }
 
-  // Restore table
+  // Restore rows
   savedReps.forEach((rep, index) => {
     addRow(rep.time, index + 1);
   });
@@ -110,9 +106,9 @@ function loadData() {
   updateProgress();
 }
 
-// Save data
+// Save rep
 function saveRep(time) {
-  let reps = JSON.parse(localStorage.getItem("reps")) || [];
+  let reps = JSON.parse(localStorage.getItem("reps") || "[]");
   reps.push({ time: time });
   localStorage.setItem("reps", JSON.stringify(reps));
 }
@@ -124,13 +120,13 @@ function formatTime(date) {
 
 // Add row
 function addRow(time, repNumber) {
-  let table = document.getElementById("tableBody");
-  let row = document.createElement("tr");
+  const table = document.getElementById("tableBody");
+  const row = document.createElement("tr");
 
-  let repCell = document.createElement("td");
+  const repCell = document.createElement("td");
   repCell.textContent = "champona" + repNumber;
 
-  let timeCell = document.createElement("td");
+  const timeCell = document.createElement("td");
   timeCell.textContent = time;
   timeCell.classList.add("done");
 
@@ -141,35 +137,36 @@ function addRow(time, repNumber) {
 
 // Progress bar
 function updateProgress() {
-  let percent = ((currentRep - 1) / 20) * 100;
+  const percent = ((currentRep - 1) / 20) * 100;
   document.getElementById("progressBar").style.width = percent + "%";
 }
 
 // Add rep
-function addRep() {
+window.addRep = function () {
   if (currentRep > 20) {
     alert("All 20 Champonas completed!");
     return;
   }
 
-  let now = formatTime(new Date());
+  const now = formatTime(new Date());
 
   addRow(now, currentRep);
   saveRep(now);
 
   currentRep++;
   updateProgress();
-}
+};
 
-// Reset manually
-function reset() {
-  localStorage.removeItem("reps");
-  localStorage.removeItem("date");
+// Reset
+window.reset = function () {
+  localStorage.clear();
   location.reload();
-}
+};
 
-// Run on load
-window.onload = loadData;
+// Initialize
+loadData();
+
+});
 </script>
 
 </body>
