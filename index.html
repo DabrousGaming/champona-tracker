@@ -1,172 +1,174 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Champona Tracker</title>
+<meta charset="UTF-8">
+<title>Champona Tracker</title>
 
-  <style>
-    body {
-      font-family: Arial;
-      text-align: center;
-      background: #111;
-      color: white;
-    }
+<style>
+body {
+  font-family: Arial;
+  text-align: center;
+  background: #111;
+  color: white;
+}
 
-    table {
-      margin: 20px auto;
-      border-collapse: collapse;
-      width: 350px;
-    }
+table {
+  margin: 20px auto;
+  border-collapse: collapse;
+  width: 350px;
+}
 
-    td, th {
-      border: 1px solid #444;
-      padding: 10px;
-    }
+td, th {
+  border: 1px solid #444;
+  padding: 10px;
+}
 
-    button {
-      padding: 10px 20px;
-      margin: 10px;
-      font-size: 16px;
-      cursor: pointer;
-      border-radius: 8px;
-      border: none;
-    }
+button {
+  padding: 10px 20px;
+  margin: 10px;
+  cursor: pointer;
+}
 
-    .done {
-      color: lightgreen;
-    }
+.done {
+  color: lightgreen;
+}
 
-    .progress-container {
-      width: 350px;
-      height: 20px;
-      background: #333;
-      margin: 15px auto;
-      border-radius: 10px;
-      overflow: hidden;
-    }
-
-    .progress-bar {
-      height: 100%;
-      width: 0%;
-      background: limegreen;
-      transition: 0.3s;
-    }
-  </style>
+.history {
+  margin-top: 30px;
+}
+</style>
 </head>
 
 <body>
 
-<h1>Champona Tracker (20)</h1>
+<h1>Champona Tracker</h1>
 
-<button onclick="addRep()">+ Complete Champona</button>
+<button onclick="addRep()">+ Champona</button>
 <button onclick="reset()">Reset</button>
+<button onclick="toggleHistory()">Show History</button>
 
-<div class="progress-container">
-  <div class="progress-bar" id="progressBar"></div>
-</div>
-
+<h2>Today</h2>
 <table>
-  <tr>
-    <th>Champona</th>
-    <th>Time</th>
-  </tr>
-  <tbody id="tableBody"></tbody>
+<tr><th>Champona</th><th>Time</th></tr>
+<tbody id="tableBody"></tbody>
 </table>
 
-<script>
-document.addEventListener("DOMContentLoaded", () => {
+<div class="history" id="historySection" style="display:none;">
+<h2>History</h2>
+<div id="historyContent"></div>
+</div>
 
+<script>
 let currentRep = 1;
 
-// Stable date format
 function getToday() {
   return new Date().toISOString().split("T")[0];
 }
 
 const today = getToday();
 
-// Load saved data
-function loadData() {
+// Move yesterday data to history
+function checkNewDay() {
   const savedDate = localStorage.getItem("date");
-  let savedReps = JSON.parse(localStorage.getItem("reps") || "[]");
+  let reps = JSON.parse(localStorage.getItem("reps") || "[]");
 
-  // Reset if new day
-  if (savedDate !== today) {
-    localStorage.setItem("date", today);
+  if (savedDate && savedDate !== today && reps.length > 0) {
+    let history = JSON.parse(localStorage.getItem("history") || "{}");
+
+    history[savedDate] = reps;
+
+    localStorage.setItem("history", JSON.stringify(history));
     localStorage.setItem("reps", JSON.stringify([]));
-    savedReps = [];
   }
 
-  // Restore rows
-  savedReps.forEach((rep, index) => {
+  localStorage.setItem("date", today);
+}
+
+// Load today's data
+function loadToday() {
+  let reps = JSON.parse(localStorage.getItem("reps") || "[]");
+
+  reps.forEach((rep, index) => {
     addRow(rep.time, index + 1);
   });
 
-  currentRep = savedReps.length + 1;
-  updateProgress();
+  currentRep = reps.length + 1;
 }
 
 // Save rep
 function saveRep(time) {
   let reps = JSON.parse(localStorage.getItem("reps") || "[]");
-  reps.push({ time: time });
+  reps.push({ time });
   localStorage.setItem("reps", JSON.stringify(reps));
 }
 
-// Format time
-function formatTime(date) {
-  return date.toLocaleTimeString();
-}
-
 // Add row
-function addRow(time, repNumber) {
-  const table = document.getElementById("tableBody");
-  const row = document.createElement("tr");
+function addRow(time, num) {
+  let row = document.createElement("tr");
 
-  const repCell = document.createElement("td");
-  repCell.textContent = "champona" + repNumber;
+  row.innerHTML = `
+    <td>champona${num}</td>
+    <td class="done">${time}</td>
+  `;
 
-  const timeCell = document.createElement("td");
-  timeCell.textContent = time;
-  timeCell.classList.add("done");
-
-  row.appendChild(repCell);
-  row.appendChild(timeCell);
-  table.appendChild(row);
-}
-
-// Progress bar
-function updateProgress() {
-  const percent = ((currentRep - 1) / 20) * 100;
-  document.getElementById("progressBar").style.width = percent + "%";
+  document.getElementById("tableBody").appendChild(row);
 }
 
 // Add rep
-window.addRep = function () {
+function addRep() {
   if (currentRep > 20) {
-    alert("All 20 Champonas completed!");
+    alert("Completed!");
     return;
   }
 
-  const now = formatTime(new Date());
+  let time = new Date().toLocaleTimeString();
 
-  addRow(now, currentRep);
-  saveRep(now);
+  addRow(time, currentRep);
+  saveRep(time);
 
   currentRep++;
-  updateProgress();
-};
+}
 
-// Reset
-window.reset = function () {
-  localStorage.clear();
+// Reset today
+function reset() {
+  localStorage.removeItem("reps");
   location.reload();
-};
+}
 
-// Initialize
-loadData();
+// Show history
+function toggleHistory() {
+  let section = document.getElementById("historySection");
+  section.style.display = section.style.display === "none" ? "block" : "none";
 
-});
+  loadHistory();
+}
+
+// Load history
+function loadHistory() {
+  let history = JSON.parse(localStorage.getItem("history") || "{}");
+  let container = document.getElementById("historyContent");
+
+  container.innerHTML = "";
+
+  for (let date in history) {
+    let div = document.createElement("div");
+
+    let html = `<h3>${date}</h3><ul>`;
+
+    history[date].forEach((rep, i) => {
+      html += `<li>champona${i+1} - ${rep.time}</li>`;
+    });
+
+    html += "</ul>";
+
+    div.innerHTML = html;
+    container.appendChild(div);
+  }
+}
+
+// Init
+checkNewDay();
+loadToday();
 </script>
 
 </body>
