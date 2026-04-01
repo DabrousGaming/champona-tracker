@@ -79,18 +79,26 @@
 
 <script>
 let currentRep = 1;
-let today = new Date().toDateString();
+
+// Get today's date in stable format
+function getToday() {
+  return new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+}
+
+let today = getToday();
 
 // Load saved data
 function loadData() {
   const savedDate = localStorage.getItem("date");
-  const savedReps = JSON.parse(localStorage.getItem("reps")) || [];
+  let savedReps = JSON.parse(localStorage.getItem("reps"));
 
-  // Reset if new day
+  if (!savedReps) savedReps = [];
+
+  // Reset ONLY if date changed
   if (savedDate !== today) {
     localStorage.setItem("date", today);
     localStorage.setItem("reps", JSON.stringify([]));
-    return;
+    savedReps = [];
   }
 
   // Restore table
@@ -131,7 +139,7 @@ function addRow(time, repNumber) {
   table.appendChild(row);
 }
 
-// Update progress bar
+// Progress bar
 function updateProgress() {
   let percent = ((currentRep - 1) / 20) * 100;
   document.getElementById("progressBar").style.width = percent + "%";
@@ -160,8 +168,8 @@ function reset() {
   location.reload();
 }
 
-// Load on start
-loadData();
+// Run on load
+window.onload = loadData;
 </script>
 
 </body>
