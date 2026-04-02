@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Champona Tracker Cloud</title>
+<title>Champona Tracker</title>
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -13,26 +13,17 @@ body {
   background: #111;
   color: white;
 }
-
 button {
   padding: 10px;
   margin: 8px;
-  cursor: pointer;
 }
-
 table {
   margin: 20px auto;
   border-collapse: collapse;
-  width: 300px;
 }
-
 td, th {
   border: 1px solid #444;
   padding: 10px;
-}
-
-.done {
-  color: lightgreen;
 }
 </style>
 </head>
@@ -41,71 +32,96 @@ td, th {
 
 <h1>Champona Tracker ☁️</h1>
 
-<button onclick="login()">Login</button>
-<button onclick="logout()">Logout</button>
+<button id="loginBtn">Login</button>
+<button id="logoutBtn">Logout</button>
 
 <br>
 
-<button onclick="addRep()">+ Champona</button>
-
-<h2>Today</h2>
+<button id="addBtn">+ Champona</button>
 
 <table>
-<tr>
-<th>Champona</th>
-<th>Time</th>
-</tr>
+<tr><th>Champona</th><th>Time</th></tr>
 <tbody id="tableBody"></tbody>
 </table>
 
-<!-- Firebase v8 -->
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } 
+from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
 
-<script>
+import { getFirestore, collection, addDoc, getDocs, query, orderBy } 
+from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSyCmpmxQnDDOATHJGAGQmMMcb1Nv-fLuX08",
   authDomain: "champona-tracker.firebaseapp.com",
   projectId: "champona-tracker",
-  storageBucket: "champona-tracker.firebasestorage.app",
-  messagingSenderId: "828936745129",
-  appId: "1:828936745129:web:a8ba8c2ffc35b54454f9b8",
-  measurementId: "G-0446VV8Y6T"
 };
 
-firebase.initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-const auth = firebase.auth();
-const db = firebase.firestore();
+const provider = new GoogleAuthProvider();
 
 let user = null;
 
-// 🔥 LOGIN (popup + fallback)
-function login() {
-  const provider = new firebase.auth.GoogleAuthProvider();
-
-  auth.signInWithPopup(provider)
-    .catch(() => {
-      auth.signInWithRedirect(provider);
-    });
-}
-
-// 🔥 REDIRECT RESULT (IMPORTANT)
-auth.getRedirectResult().then(result => {
-  if (result.user) {
-    user = result.user;
-    loadData();
+// LOGIN
+document.getElementById("loginBtn").onclick = async () => {
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (err) {
+    alert(err.message);
   }
-});
+};
 
 // LOGOUT
-function logout() {
-  auth.signOut();
+document.getElementById("logoutBtn").onclick = () => {
+  signOut(auth);
+};
+
+// ADD REP
+document.getElementById("addBtn").onclick = async () => {
+  if (!user) return alert("Login first!");
+
+  await addDoc(collection(db, "users", user.uid, "reps"), {
+    time: new Date().toLocaleTimeString(),
+    created: new Date()
+  });
+
+  loadData();
+};
+
+// LOAD DATA
+async function loadData() {
+  if (!user) return;
+
+  const q = query(
+    collection(db, "users", user.uid, "reps"),
+    orderBy("created")
+  );
+
+  const snapshot = await getDocs(q);
+
+  let table = document.getElementById("tableBody");
+  table.innerHTML = "";
+
+  let i = 1;
+  snapshot.forEach(doc => {
+    let d = doc.data();
+
+    table.innerHTML += `
+      <tr>
+        <td>champona${i}</td>
+        <td>${d.time}</td>
+      </tr>
+    `;
+    i++;
+  });
 }
 
 // AUTH STATE
-auth.onAuthStateChanged(u => {
+onAuthStateChanged(auth, (u) => {
   if (u) {
     user = u;
     loadData();
@@ -115,53 +131,6 @@ auth.onAuthStateChanged(u => {
   }
 });
 
-// ADD REP
-async function addRep() {
-  if (!user) {
-    alert("Login first!");
-    return;
-  }
-
-  let time = new Date().toLocaleTimeString();
-
-  await db.collection("users")
-    .doc(user.uid)
-    .collection("reps")
-    .add({
-      time: time,
-      created: new Date()
-    });
-
-  loadData();
-}
-
-// LOAD DATA
-async function loadData() {
-  if (!user) return;
-
-  const snapshot = await db.collection("users")
-    .doc(user.uid)
-    .collection("reps")
-    .orderBy("created")
-    .get();
-
-  let table = document.getElementById("tableBody");
-  table.innerHTML = "";
-
-  let i = 1;
-  snapshot.forEach(doc => {
-    let d = doc.data();
-
-    let row = document.createElement("tr");
-    row.innerHTML = `
-      <td>champona${i}</td>
-      <td class="done">${d.time}</td>
-    `;
-
-    table.appendChild(row);
-    i++;
-  });
-}
 </script>
 
 </body>
