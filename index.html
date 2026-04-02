@@ -41,7 +41,7 @@ td, th {
 
 <h1>Champona Tracker ☁️</h1>
 
-<button onclick="login()">Login with Google</button>
+<button onclick="login()">Login</button>
 <button onclick="logout()">Logout</button>
 
 <br>
@@ -81,11 +81,23 @@ const db = firebase.firestore();
 
 let user = null;
 
-// LOGIN
+// 🔥 LOGIN (popup + fallback)
 function login() {
   const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider);
+
+  auth.signInWithPopup(provider)
+    .catch(() => {
+      auth.signInWithRedirect(provider);
+    });
 }
+
+// 🔥 REDIRECT RESULT (IMPORTANT)
+auth.getRedirectResult().then(result => {
+  if (result.user) {
+    user = result.user;
+    loadData();
+  }
+});
 
 // LOGOUT
 function logout() {
@@ -141,7 +153,6 @@ async function loadData() {
     let d = doc.data();
 
     let row = document.createElement("tr");
-
     row.innerHTML = `
       <td>champona${i}</td>
       <td class="done">${d.time}</td>
