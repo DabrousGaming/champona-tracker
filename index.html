@@ -2,141 +2,154 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Champona Tracker Ultimate</title>
+<title>Champona Tracker Cloud</title>
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="manifest" href="manifest.json">
 
 <style>
-body { font-family: Arial; text-align: center; background:#111; color:white; }
-button, input { padding:8px; margin:6px; }
-table { margin:20px auto; border-collapse: collapse; width:420px; }
-td, th { border:1px solid #444; padding:8px; }
-.done { color:lightgreen; }
+body {
+  font-family: Arial;
+  text-align: center;
+  background: #111;
+  color: white;
+}
+
+button {
+  padding: 10px;
+  margin: 8px;
+  cursor: pointer;
+}
+
+table {
+  margin: 20px auto;
+  border-collapse: collapse;
+  width: 300px;
+}
+
+td, th {
+  border: 1px solid #444;
+  padding: 10px;
+}
+
+.done {
+  color: lightgreen;
+}
 </style>
 </head>
 
 <body>
 
-<h1>Champona Tracker</h1>
+<h1>Champona Tracker ☁️</h1>
 
-<p id="streak"></p>
-<p id="goal"></p>
+<button onclick="login()">Login with Google</button>
+<button onclick="logout()">Logout</button>
 
-<button onclick="addRep()">+ Champona (SPACE)</button><br>
+<br>
 
-<input type="number" id="customInput" placeholder="1-20">
-<button onclick="addCustom()">Custom</button><br>
-
-<button onclick="exportData()">Export Data</button>
-<button onclick="reset()">Reset</button>
+<button onclick="addRep()">+ Champona</button>
 
 <h2>Today</h2>
+
 <table>
-<tr><th>Champona</th><th>Time</th></tr>
+<tr>
+<th>Champona</th>
+<th>Time</th>
+</tr>
 <tbody id="tableBody"></tbody>
 </table>
 
+<!-- Firebase v8 -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
 <script>
-let currentRep = 1;
+const firebaseConfig = {
+  apiKey: "AIzaSyCmpmxQnDDOATHJGAGQmMMcb1Nv-fLuX08",
+  authDomain: "champona-tracker.firebaseapp.com",
+  projectId: "champona-tracker",
+  storageBucket: "champona-tracker.firebasestorage.app",
+  messagingSenderId: "828936745129",
+  appId: "1:828936745129:web:a8ba8c2ffc35b54454f9b8",
+  measurementId: "G-0446VV8Y6T"
+};
 
-function getToday() {
-  return new Date().toISOString().split("T")[0];
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let user = null;
+
+// LOGIN
+function login() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider);
 }
 
-const today = getToday();
-
-// STORAGE
-function getReps() {
-  return JSON.parse(localStorage.getItem("reps") || "[]");
-}
-function saveReps(data) {
-  localStorage.setItem("reps", JSON.stringify(data));
+// LOGOUT
+function logout() {
+  auth.signOut();
 }
 
-// ADD
-function addRep() {
-  let reps = getReps();
-  if (reps.length >= 20) return alert("Done!");
-
-  reps.push({ num: reps.length+1, time: new Date().toLocaleTimeString() });
-  saveReps(reps);
-  load();
-}
-
-function addCustom() {
-  let num = parseInt(customInput.value);
-  if (!num || num<1 || num>20) return;
-
-  let reps = getReps();
-  reps.push({ custom:num, time:new Date().toLocaleTimeString() });
-  saveReps(reps);
-
-  customInput.value="";
-  load();
-}
-
-// LOAD
-function load() {
-  let reps = getReps();
-  tableBody.innerHTML="";
-
-  reps.forEach((r,i)=>{
-    let num = r.custom || r.num;
-    tableBody.innerHTML += `<tr><td>champona${num}</td><td>${r.time}</td></tr>`;
-  });
-
-  updateGoal();
-}
-
-// GOAL
-function updateGoal() {
-  let count = getReps().length;
-  goal.innerText = `Goal: ${count}/20`;
-}
-
-// STREAK
-function updateStreak() {
-  let last = localStorage.getItem("lastDay");
-  let streak = parseInt(localStorage.getItem("streak")||"0");
-
-  if (last !== today) {
-    streak++;
-    localStorage.setItem("streak", streak);
-    localStorage.setItem("lastDay", today);
+// AUTH STATE
+auth.onAuthStateChanged(u => {
+  if (u) {
+    user = u;
+    loadData();
+  } else {
+    user = null;
+    document.getElementById("tableBody").innerHTML = "";
   }
-
-  document.getElementById("streak").innerText = "Streak: " + streak;
-}
-
-// EXPORT
-function exportData() {
-  let data = localStorage.getItem("history") || "{}";
-  let blob = new Blob([data], {type:"application/json"});
-  let a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "champona-data.json";
-  a.click();
-}
-
-// RESET
-function reset() {
-  localStorage.clear();
-  location.reload();
-}
-
-// SPACE
-document.addEventListener("keydown", e=>{
-  if(e.code==="Space"){ e.preventDefault(); addRep(); }
 });
 
-// INIT
-load();
-updateStreak();
+// ADD REP
+async function addRep() {
+  if (!user) {
+    alert("Login first!");
+    return;
+  }
 
-// SERVICE WORKER
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js");
+  let time = new Date().toLocaleTimeString();
+
+  await db.collection("users")
+    .doc(user.uid)
+    .collection("reps")
+    .add({
+      time: time,
+      created: new Date()
+    });
+
+  loadData();
+}
+
+// LOAD DATA
+async function loadData() {
+  if (!user) return;
+
+  const snapshot = await db.collection("users")
+    .doc(user.uid)
+    .collection("reps")
+    .orderBy("created")
+    .get();
+
+  let table = document.getElementById("tableBody");
+  table.innerHTML = "";
+
+  let i = 1;
+  snapshot.forEach(doc => {
+    let d = doc.data();
+
+    let row = document.createElement("tr");
+
+    row.innerHTML = `
+      <td>champona${i}</td>
+      <td class="done">${d.time}</td>
+    `;
+
+    table.appendChild(row);
+    i++;
+  });
 }
 </script>
 
