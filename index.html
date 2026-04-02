@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Champona Tracker Pro</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#111;color:#eee;min-height:100vh}
+body.light{background:#f5f5f5;color:#111}
+.wrap{padding:1.25rem 1rem;max-width:500px;margin:0 auto}
+.top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
+.title-block h1{font-size:19px;font-weight:600;color:inherit}
+.title-block .sub{font-size:12px;color:#888;margin-top:2px}
+body.light .title-block .sub{color:#666}
+.top-controls{display:flex;gap:6px;align-items:center}
+button{background:none;border:1px solid #444;border-radius:8px;padding:7px 12px;cursor:pointer;font-size:13px;color:#ccc;transition:background .12s}
+button:hover{background:#222}
+body.light button{border-color:#bbb;color:#333}
+body.light button:hover{background:#e8e8e8}
+input,textarea{background:#1e1e1e;border:1px solid #444;border-radius:8px;padding:7px 10px;font-size:13px;color:#eee;outline:none;width:100%}
+input:focus,textarea:focus{border-color:#555}
+body.light input,body.light textarea{background:#fff;border-color:#bbb;color:#111}
+.stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:1rem}
+.sc{background:#1e1e1e;border-radius:8px;padding:10px;text-align:center}
+body.light .sc{background:#e8e8e8}
+.sc-label{font-size:11px;color:#777;margin-bottom:3px}
+body.light .sc-label{color:#888}
+.sc-val{font-size:20px;font-weight:600}
+.streak-badge{display:flex;align-items:center;justify-content:center;gap:4px;font-size:20px;font-weight:600;color:#f59e0b}
+.prog-wrap{margin-bottom:1rem}
+.prog-bar{background:#1e1e1e;border-radius:8px;height:6px;overflow:hidden}
+body.light .prog-bar{background:#ddd}
+.prog-fill{height:100%;background:#378ADD;border-radius:8px;transition:width .3s}
+.prog-label{display:flex;justify-content:space-between;font-size:11px;color:#777;margin-top:4px}
+.session-timer{text-align:center;font-size:12px;color:#888;margin-bottom:1rem;padding:6px;background:#1e1e1e;border-radius:8px}
+body.light .session-timer{background:#e8e8e8;color:#666}
+.session-timer span{font-weight:600;color:#eee}
+body.light .session-timer span{color:#111}
+.session-timer .pb-new{color:#22c55e}
+.btn-row{display:flex;gap:6px;margin-bottom:10px}
+.btn-row button{flex:1}
+.btn-main{font-weight:600;font-size:14px}
+.custom-row{display:flex;gap:6px;margin-bottom:1.25rem}
+.custom-row input{flex:1}
+.custom-row button{white-space:nowrap;flex-shrink:0}
+.champona-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:1.5rem}
+.cell{aspect-ratio:1;border-radius:8px;border:1px solid #333;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#777;cursor:pointer;transition:background .12s;position:relative;overflow:hidden}
+body.light .cell{border-color:#ccc;color:#aaa}
+.cell.done{background:#14532d22;color:#22c55e;border-color:#16a34a55}
+.cell.next{border-color:#378ADD88;color:#378ADD;background:#378ADD11}
+.cell:hover:not(.done){background:#222}
+body.light .cell:hover:not(.done){background:#e0e0e0}
+.cell .note-dot{width:5px;height:5px;border-radius:50%;background:#f59e0b;margin-top:2px}
+.cell .note-btn{position:absolute;bottom:2px;right:3px;font-size:10px;background:none;border:none;padding:0;color:#f59e0b;cursor:pointer;line-height:1;opacity:0.7}
+.cell .note-btn:hover{opacity:1;background:none}
+.cell .del-btn{position:absolute;top:2px;right:3px;font-size:10px;background:none;border:none;padding:0;color:#ef444488;cursor:pointer;line-height:1;opacity:0}
+.cell.done:hover .del-btn{opacity:1}
+.cell .del-btn:hover{color:#ef4444;background:none}
+.modal-bg{background:rgba(0,0,0,0.6);border-radius:12px;padding:2rem 1rem;display:flex;align-items:center;justify-content:center;min-height:180px;margin-bottom:1rem}
+.modal{background:#1e1e1e;border:1px solid #444;border-radius:12px;padding:1.25rem;width:100%;max-width:320px}
+body.light .modal{background:#fff;border-color:#ccc}
+.modal h3{font-size:15px;font-weight:600;margin-bottom:10px}
+.modal textarea{margin-bottom:10px;resize:vertical;min-height:72px}
+.modal .mbtns{display:flex;gap:8px}
+.modal .mbtns button{flex:1}
+.section-head{font-size:11px;font-weight:600;color:#666;letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px}
+.heatmap-wrap{margin-bottom:1.5rem}
+.heatmap-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.hm-cell{aspect-ratio:1;border-radius:4px;background:#1e1e1e}
+body.light .hm-cell{background:#e0e0e0}
+.hm-cell.full{background:#16a34a;opacity:0.85}
+.hm-cell.partial{background:#d97706;opacity:0.7}
+.hm-day-label{font-size:10px;color:#666;text-align:center}
+.history-block{background:#1e1e1e;border-radius:8px;padding:10px;margin-bottom:8px}
+body.light .history-block{background:#e8e8e8}
+.history-date{font-size:13px;font-weight:600;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center}
+.history-chips{display:flex;flex-wrap:wrap;gap:3px}
+.chip{background:#111;border:1px solid #333;border-radius:100px;font-size:11px;padding:2px 7px;color:#888}
+body.light .chip{background:#fff;border-color:#ccc;color:#777}
+.badge-complete{font-size:11px;background:#14532d33;color:#22c55e;padding:2px 7px;border-radius:100px}
+.confetti-area{position:relative;height:0;overflow:visible}
+.confetti-piece{position:absolute;width:7px;height:7px;border-radius:2px;pointer-events:none;animation:cf 1.2s ease-in forwards}
+@keyframes cf{0%{opacity:1;transform:translateY(0) rotate(0deg)}100%{opacity:0;transform:translateY(120px) rotate(720deg)}}
+.empty-msg{font-size:13px;color:#666;padding:8px 0}
+.undo-btn{color:#f59e0b;border-color:#f59e0b55}
+.undo-btn:hover{background:#f59e0b11}
+.danger-btn{color:#ef4444;border-color:#ef444455}
+.danger-btn:hover{background:#ef444411}
+</style>
+</head>
+<body>
+<div class="wrap" id="appWrap">
+
+  <div class="top-bar">
+    <div class="title-block">
+      <h1>Champona Tracker</h1>
+      <div class="sub" id="dateLabel">—</div>
+    </div>
+    <div class="top-controls">
+      <button id="themeBtn" onclick="toggleTheme()">☀ Light</button>
+      <button onclick="exportCSV()">↓ CSV</button>
+      <button onclick="toggleSound()" id="soundBtn">♪ On</button>
+    </div>
+  </div>
+
+  <div class="stat-grid">
+    <div class="sc"><div class="sc-label">Done</div><div class="sc-val" id="statDone">0</div></div>
+    <div class="sc"><div class="sc-label">Left</div><div class="sc-val" id="statLeft">20</div></div>
+    <div class="sc"><div class="sc-label">Avg gap</div><div class="sc-val" id="statAvg">—</div></div>
+    <div class="sc"><div class="sc-label">Streak</div><div class="sc-val"><div class="streak-badge" id="statStreak">0 🔥</div></div></div>
+  </div>
+
+  <div class="session-timer" id="sessionTimer" style="display:none">
+    Session: <span id="timerVal">0:00</span> &nbsp;|&nbsp; Best: <span id="pbTime">—</span>
+  </div>
+
+  <div class="prog-wrap">
+    <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+    <div class="prog-label"><span id="progPct">0%</span><span id="progCount">0 / 20</span></div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn-main" id="bigBtn" onclick="addNext()">+ Next champona (Space)</button>
+    <button class="undo-btn" onclick="undoLast()">↩ Undo</button>
+    <button class="danger-btn" onclick="doReset()">Reset</button>
+  </div>
+
+  <div class="custom-row">
+    <input type="number" id="customInput" placeholder="Add specific # (1–20)" min="1" max="20">
+    <button onclick="addCustom()">Add</button>
+  </div>
+
+  <div id="noteModal" style="display:none">
+    <div class="modal-bg">
+      <div class="modal">
+        <h3 id="noteTitle">Note for champona —</h3>
+        <textarea id="noteText" placeholder="e.g. 15 reps, felt strong..."></textarea>
+        <div class="mbtns">
+          <button onclick="saveNote()">Save Note</button>
+          <button onclick="closeNoteModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="confetti-area" id="confettiArea"></div>
+
+  <div class="champona-grid" id="champGrid"></div>
+
+  <div class="heatmap-wrap">
+    <div class="section-head">Last 7 days</div>
+    <div class="heatmap-grid" id="heatmap"></div>
+  </div>
+
+  <div>
+    <div class="section-head">History</div>
+    <div id="historyContent"></div>
+  </div>
+
+</div>
+
+<script>
+const TOTAL = 20;
+let soundOn = true;
+let lightMode = false;
+let undoStack = null;
+let pendingNoteNum = null;
+let sessionInterval = null;
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let actx = null;
+
+function beep(freq, dur) {
+  if (!soundOn) return;
+  try {
+    if (!actx) actx = new AudioCtx();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.connect(g); g.connect(actx.destination);
+    o.type = 'sine'; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.15, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur);
+    o.start(); o.stop(actx.currentTime + dur);
+  } catch(e) {}
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  document.getElementById('soundBtn').textContent = soundOn ? '♪ On' : '♪ Off';
+}
+
+function toggleTheme() {
+  lightMode = !lightMode;
+  document.body.classList.toggle('light', lightMode);
+  document.getElementById('themeBtn').textContent = lightMode ? '☽ Dark' : '☀ Light';
+}
+
+function getToday() { return new Date().toLocaleDateString('en-CA'); }
+function getReps() { return JSON.parse(localStorage.getItem('reps') || '[]'); }
+function saveReps(d) { localStorage.setItem('reps', JSON.stringify(d)); }
+function getHistory() { return JSON.parse(localStorage.getItem('history') || '{}'); }
+function saveHistory(h) { localStorage.setItem('history', JSON.stringify(h)); }
+function doneNums() { return getReps().map(r => r.num); }
+
+function checkNewDay() {
+  const saved = localStorage.getItem('date');
+  const today = getToday();
+  const reps = getReps();
+  if (saved && saved !== today && reps.length > 0) {
+    const hist = getHistory();
+    hist[saved] = reps;
+    saveHistory(hist);
+    saveReps([]);
+    localStorage.removeItem('sessionStart');
+  }
+  localStorage.setItem('date', today);
+}
+
+function calcStreak() {
+  const hist = getHistory();
+  const reps = getReps();
+  let streak = 0;
+  let d = new Date();
+  if (reps.length === TOTAL) { streak = 1; d.setDate(d.getDate() - 1); }
+  for (let i = 0; i < 365; i++) {
+    const key = d.toLocaleDateString('en-CA');
+    if (hist[key] && hist[key].length === TOTAL) { streak++; d.setDate(d.getDate() - 1); }
+    else break;
+  }
+  return streak;
+}
+
+function calcPersonalBest() {
+  const hist = getHistory();
+  let best = null;
+  for (const key in hist) {
+    const reps = hist[key];
+    if (reps.length < TOTAL) continue;
+    const times = reps.map(r => new Date('1970/01/01 ' + r.time)).filter(t => !isNaN(t));
+    if (times.length < 2) continue;
+    const dur = (Math.max(...times) - Math.min(...times)) / 1000;
+    if (best === null || dur < best) best = dur;
+  }
+  return best;
+}
+
+function formatSecs(s) {
+  const m = Math.floor(s / 60), sec = Math.round(s % 60);
+  return m + ':' + String(sec).padStart(2, '0');
+}
+
+function calcSessionTime() {
+  const ss = localStorage.getItem('sessionStart');
+  return ss ? Math.floor((Date.now() - parseInt(ss)) / 1000) : null;
+}
+
+function startTimer() {
+  stopTimer();
+  document.getElementById('sessionTimer').style.display = 'block';
+  sessionInterval = setInterval(() => {
+    const s = calcSessionTime();
+    if (s !== null) document.getElementById('timerVal').textContent = formatSecs(s);
+  }, 1000);
+}
+
+function stopTimer() {
+  if (sessionInterval) { clearInterval(sessionInterval); sessionInterval = null; }
+}
+
+function addNext() {
+  const done = doneNums();
+  if (done.length >= TOTAL) return;
+  for (let i = 1; i <= TOTAL; i++) {
+    if (!done.includes(i)) { commitAdd(i); return; }
+  }
+}
+
+function addCustom() {
+  const n = parseInt(document.getElementById('customInput').value);
+  if (!n || n < 1 || n > TOTAL) { alert('Enter a number 1–20'); return; }
+  if (doneNums().includes(n)) { alert('Already done!'); return; }
+  document.getElementById('customInput').value = '';
+  commitAdd(n);
+}
+
+function commitAdd(n) {
+  if (doneNums().includes(n)) return;
+  if (!localStorage.getItem('sessionStart')) {
+    localStorage.setItem('sessionStart', Date.now());
+    startTimer();
+  }
+  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const reps = getReps();
+  reps.push({ num: n, time, note: '' });
+  saveReps(reps);
+  undoStack = { num: n };
+  beep(660, 0.12);
+  if (reps.length === TOTAL) onComplete();
+  render();
+}
+
+function openNoteModal(n) {
+  pendingNoteNum = n;
+  const rep = getReps().find(r => r.num === n);
+  document.getElementById('noteTitle').textContent = 'Note for champona ' + n;
+  document.getElementById('noteText').value = rep ? (rep.note || '') : '';
+  document.getElementById('noteModal').style.display = 'block';
+  setTimeout(() => document.getElementById('noteText').focus(), 50);
+}
+
+function saveNote() {
+  if (pendingNoteNum === null) return;
+  const note = document.getElementById('noteText').value.trim();
+  const reps = getReps();
+  const rep = reps.find(r => r.num === pendingNoteNum);
+  if (rep) { rep.note = note; saveReps(reps); }
+  closeNoteModal();
+  render();
+}
+
+function closeNoteModal() {
+  document.getElementById('noteModal').style.display = 'none';
+  pendingNoteNum = null;
+}
+
+function removeNum(n) {
+  const reps = getReps().filter(r => r.num !== n);
+  saveReps(reps);
+  beep(300, 0.1);
+  if (!reps.length) { localStorage.removeItem('sessionStart'); stopTimer(); }
+  render();
+}
+
+function undoLast() {
+  if (!undoStack) return;
+  removeNum(undoStack.num);
+  undoStack = null;
+}
+
+function doReset() {
+  if (!confirm('Reset today\'s session?')) return;
+  saveReps([]);
+  localStorage.removeItem('sessionStart');
+  undoStack = null;
+  stopTimer();
+  document.getElementById('sessionTimer').style.display = 'none';
+  render();
+}
+
+function onComplete() {
+  beep(523, 0.1);
+  setTimeout(() => beep(659, 0.1), 130);
+  setTimeout(() => beep(784, 0.25), 260);
+  stopTimer();
+  const ss = localStorage.getItem('sessionStart');
+  if (ss) {
+    const dur = Math.floor((Date.now() - parseInt(ss)) / 1000);
+    const pb = calcPersonalBest();
+    const pbEl = document.getElementById('pbTime');
+    if (pb === null || dur <= pb) {
+      pbEl.textContent = formatSecs(dur) + ' (NEW PB!)';
+      pbEl.className = 'pb-new';
+    }
+    const today = getToday();
+    const hist = getHistory();
+    hist[today] = getReps();
+    saveHistory(hist);
+  }
+  spawnConfetti();
+}
+
+function spawnConfetti() {
+  const area = document.getElementById('confettiArea');
+  const colors = ['#378ADD', '#22c55e', '#f59e0b', '#D4537E', '#D85A30'];
+  for (let i = 0; i < 36; i++) {
+    const d = document.createElement('div');
+    d.className = 'confetti-piece';
+    d.style.left = Math.random() * 100 + '%';
+    d.style.background = colors[i % colors.length];
+    d.style.animationDelay = Math.random() * 0.4 + 's';
+    d.style.animationDuration = (0.8 + Math.random() * 0.8) + 's';
+    area.appendChild(d);
+  }
+  setTimeout(() => area.innerHTML = '', 2500);
+}
+
+function render() {
+  const reps = getReps();
+  const done = doneNums();
+  const count = done.length;
+  const nextNum = (() => { for (let i = 1; i <= TOTAL; i++) if (!done.includes(i)) return i; return null; })();
+
+  document.getElementById('dateLabel').textContent = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
+  document.getElementById('statDone').textContent = count;
+  document.getElementById('statLeft').textContent = TOTAL - count;
+
+  const gaps = [];
+  for (let i = 1; i < reps.length; i++) {
+    const t1 = new Date('1970/01/01 ' + reps[i-1].time), t2 = new Date('1970/01/01 ' + reps[i].time);
+    const diff = (t2 - t1) / 1000;
+    if (diff > 0) gaps.push(diff);
+  }
+  const avg = gaps.length ? Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length) : null;
+  document.getElementById('statAvg').textContent = avg ? avg + 's' : '—';
+  document.getElementById('statStreak').textContent = calcStreak() + ' 🔥';
+
+  const pct = Math.round(count / TOTAL * 100);
+  document.getElementById('progFill').style.width = pct + '%';
+  document.getElementById('progPct').textContent = pct + '%';
+  document.getElementById('progCount').textContent = count + ' / ' + TOTAL;
+
+  const pb = calcPersonalBest();
+  if (pb && !document.getElementById('pbTime').classList.contains('pb-new')) {
+    document.getElementById('pbTime').textContent = formatSecs(Math.round(pb));
+  }
+  if (localStorage.getItem('sessionStart')) {
+    document.getElementById('sessionTimer').style.display = 'block';
+    startTimer();
+  }
+
+  document.getElementById('bigBtn').textContent = count >= TOTAL
+    ? 'All 20 done! Great work 🎉'
+    : '+ Champona ' + (nextNum || '') + ' (Space)';
+
+  const grid = document.getElementById('champGrid');
+  grid.innerHTML = '';
+  for (let i = 1; i <= TOTAL; i++) {
+    const rep = reps.find(r => r.num === i);
+    const cell = document.createElement('div');
+    cell.className = 'cell' + (rep ? ' done' : (i === nextNum ? ' next' : ''));
+
+    const numSpan = document.createElement('span');
+    numSpan.textContent = i;
+    cell.appendChild(numSpan);
+
+    if (rep) {
+      if (rep.note) {
+        const dot = document.createElement('div');
+        dot.className = 'note-dot';
+        cell.appendChild(dot);
+      }
+      cell.title = rep.time + (rep.note ? ' — ' + rep.note : '');
+
+      const noteBtn = document.createElement('button');
+      noteBtn.className = 'note-btn';
+      noteBtn.textContent = rep.note ? '✎*' : '✎';
+      noteBtn.title = rep.note ? 'Edit note: ' + rep.note : 'Add note';
+      noteBtn.addEventListener('click', e => { e.stopPropagation(); openNoteModal(i); });
+      cell.appendChild(noteBtn);
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'del-btn';
+      delBtn.textContent = '✕';
+      delBtn.title = 'Remove';
+      delBtn.addEventListener('click', e => { e.stopPropagation(); if (confirm('Remove champona ' + i + '?')) removeNum(i); });
+      cell.appendChild(delBtn);
+
+      cell.addEventListener('click', () => {});
+    } else {
+      cell.addEventListener('click', () => commitAdd(i));
+    }
+    grid.appendChild(cell);
+  }
+
+  renderHeatmap();
+  renderHistory();
+}
+
+function renderHeatmap() {
+  const hist = getHistory();
+  const hm = document.getElementById('heatmap');
+  hm.innerHTML = '';
+  ['S','M','T','W','T','F','S'].forEach(d => {
+    const l = document.createElement('div');
+    l.className = 'hm-day-label'; l.textContent = d;
+    hm.appendChild(l);
+  });
+  const today = new Date();
+  const reps = getReps();
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today); d.setDate(d.getDate() - i);
+    const key = d.toLocaleDateString('en-CA');
+    let count = i === 0 ? reps.length : (hist[key] ? hist[key].length : 0);
+    const cell = document.createElement('div');
+    cell.className = 'hm-cell' + (count === TOTAL ? ' full' : count > 0 ? ' partial' : '');
+    cell.title = key + ': ' + count + '/' + TOTAL;
+    hm.appendChild(cell);
+  }
+}
+
+function renderHistory() {
+  const hist = getHistory();
+  const container = document.getElementById('historyContent');
+  const dates = Object.keys(hist).sort().reverse();
+  if (!dates.length) { container.innerHTML = '<div class="empty-msg">No past sessions yet.</div>'; return; }
+  container.innerHTML = '';
+  dates.slice(0, 20).forEach(date => {
+    const reps = hist[date];
+    const nums = reps.map(r => r.num).sort((a, b) => a - b);
+    const el = document.createElement('div');
+    el.className = 'history-block';
+    const badge = reps.length === TOTAL ? '<span class="badge-complete">complete</span>' : '';
+    el.innerHTML = `<div class="history-date"><span>${date}</span><span>${badge} ${reps.length}/${TOTAL}</span></div>
+      <div class="history-chips">${nums.map(n => {
+        const r = reps.find(x => x.num === n);
+        return `<span class="chip" title="${r && r.note || ''}">${n}${r && r.note ? '*' : ''}</span>`;
+      }).join('')}</div>`;
+    container.appendChild(el);
+  });
+}
+
+function exportCSV() {
+  const hist = getHistory();
+  const today = getToday();
+  const all = { ...hist };
+  const reps = getReps();
+  if (reps.length) all[today] = reps;
+  let csv = 'date,champona,time,note\n';
+  Object.keys(all).sort().forEach(date => {
+    all[date].forEach(r => {
+      csv += `${date},${r.num},"${r.time}","${(r.note || '').replace(/"/g, '""')}"\n`;
+    });
+  });
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'champona_history.csv';
+  a.click();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+    e.preventDefault();
+    addNext();
+  }
+});
+
+checkNewDay();
+render();
+</script>
+</body>
+</html>
