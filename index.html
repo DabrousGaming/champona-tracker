@@ -2,40 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Champona Tracker</title>
+<title>Champona Tracker Ultimate</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest.json">
 
 <style>
-body {
-  font-family: Arial;
-  text-align: center;
-  background: #111;
-  color: white;
-}
-
-table {
-  margin: 20px auto;
-  border-collapse: collapse;
-  width: 350px;
-}
-
-td, th {
-  border: 1px solid #444;
-  padding: 10px;
-}
-
-button, input {
-  padding: 10px;
-  margin: 8px;
-  font-size: 14px;
-}
-
-.done {
-  color: lightgreen;
-}
-
-.history {
-  margin-top: 30px;
-}
+body { font-family: Arial; text-align: center; background:#111; color:white; }
+button, input { padding:8px; margin:6px; }
+table { margin:20px auto; border-collapse: collapse; width:420px; }
+td, th { border:1px solid #444; padding:8px; }
+.done { color:lightgreen; }
 </style>
 </head>
 
@@ -43,29 +20,22 @@ button, input {
 
 <h1>Champona Tracker</h1>
 
-<!-- Normal -->
-<button onclick="addRep()">+ Champona</button>
+<p id="streak"></p>
+<p id="goal"></p>
 
-<!-- Custom -->
-<br>
-<input type="number" id="customInput" placeholder="Enter champona (1-20)" min="1" max="20">
-<button onclick="addCustom()">Add Custom Champona</button>
+<button onclick="addRep()">+ Champona (SPACE)</button><br>
 
-<br>
+<input type="number" id="customInput" placeholder="1-20">
+<button onclick="addCustom()">Custom</button><br>
 
+<button onclick="exportData()">Export Data</button>
 <button onclick="reset()">Reset</button>
-<button onclick="toggleHistory()">Show History</button>
 
 <h2>Today</h2>
 <table>
 <tr><th>Champona</th><th>Time</th></tr>
 <tbody id="tableBody"></tbody>
 </table>
-
-<div class="history" id="historySection" style="display:none;">
-<h2>History</h2>
-<div id="historyContent"></div>
-</div>
 
 <script>
 let currentRep = 1;
@@ -76,124 +46,98 @@ function getToday() {
 
 const today = getToday();
 
-// Move old data to history
-function checkNewDay() {
-  const savedDate = localStorage.getItem("date");
-  let reps = JSON.parse(localStorage.getItem("reps") || "[]");
-
-  if (savedDate && savedDate !== today && reps.length > 0) {
-    let history = JSON.parse(localStorage.getItem("history") || "{}");
-    history[savedDate] = reps;
-    localStorage.setItem("history", JSON.stringify(history));
-    localStorage.setItem("reps", JSON.stringify([]));
-  }
-
-  localStorage.setItem("date", today);
+// STORAGE
+function getReps() {
+  return JSON.parse(localStorage.getItem("reps") || "[]");
+}
+function saveReps(data) {
+  localStorage.setItem("reps", JSON.stringify(data));
 }
 
-// Load today
-function loadToday() {
-  let reps = JSON.parse(localStorage.getItem("reps") || "[]");
+// ADD
+function addRep() {
+  let reps = getReps();
+  if (reps.length >= 20) return alert("Done!");
 
-  reps.forEach((rep, index) => {
-    let num = rep.custom ? rep.custom : (index + 1);
-    addRow(rep.time, num);
+  reps.push({ num: reps.length+1, time: new Date().toLocaleTimeString() });
+  saveReps(reps);
+  load();
+}
+
+function addCustom() {
+  let num = parseInt(customInput.value);
+  if (!num || num<1 || num>20) return;
+
+  let reps = getReps();
+  reps.push({ custom:num, time:new Date().toLocaleTimeString() });
+  saveReps(reps);
+
+  customInput.value="";
+  load();
+}
+
+// LOAD
+function load() {
+  let reps = getReps();
+  tableBody.innerHTML="";
+
+  reps.forEach((r,i)=>{
+    let num = r.custom || r.num;
+    tableBody.innerHTML += `<tr><td>champona${num}</td><td>${r.time}</td></tr>`;
   });
 
-  currentRep = reps.length + 1;
+  updateGoal();
 }
 
-// Save
-function saveRep(obj) {
-  let reps = JSON.parse(localStorage.getItem("reps") || "[]");
-  reps.push(obj);
-  localStorage.setItem("reps", JSON.stringify(reps));
+// GOAL
+function updateGoal() {
+  let count = getReps().length;
+  goal.innerText = `Goal: ${count}/20`;
 }
 
-// Add row
-function addRow(time, num) {
-  let row = document.createElement("tr");
+// STREAK
+function updateStreak() {
+  let last = localStorage.getItem("lastDay");
+  let streak = parseInt(localStorage.getItem("streak")||"0");
 
-  row.innerHTML = `
-    <td>champona${num}</td>
-    <td class="done">${time}</td>
-  `;
-
-  document.getElementById("tableBody").appendChild(row);
-}
-
-// Normal add
-function addRep() {
-  if (currentRep > 20) {
-    alert("Completed!");
-    return;
+  if (last !== today) {
+    streak++;
+    localStorage.setItem("streak", streak);
+    localStorage.setItem("lastDay", today);
   }
 
-  let time = new Date().toLocaleTimeString();
-
-  addRow(time, currentRep);
-  saveRep({ time });
-
-  currentRep++;
+  document.getElementById("streak").innerText = "Streak: " + streak;
 }
 
-// Custom add
-function addCustom() {
-  let num = parseInt(document.getElementById("customInput").value);
-
-  if (!num || num < 1 || num > 20) {
-    alert("Enter number between 1-20");
-    return;
-  }
-
-  let time = new Date().toLocaleTimeString();
-
-  addRow(time, num);
-  saveRep({ time, custom: num });
-
-  document.getElementById("customInput").value = "";
+// EXPORT
+function exportData() {
+  let data = localStorage.getItem("history") || "{}";
+  let blob = new Blob([data], {type:"application/json"});
+  let a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "champona-data.json";
+  a.click();
 }
 
-// Reset
+// RESET
 function reset() {
-  localStorage.removeItem("reps");
+  localStorage.clear();
   location.reload();
 }
 
-// Toggle history
-function toggleHistory() {
-  let sec = document.getElementById("historySection");
-  sec.style.display = sec.style.display === "none" ? "block" : "none";
-  loadHistory();
+// SPACE
+document.addEventListener("keydown", e=>{
+  if(e.code==="Space"){ e.preventDefault(); addRep(); }
+});
+
+// INIT
+load();
+updateStreak();
+
+// SERVICE WORKER
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js");
 }
-
-// Load history
-function loadHistory() {
-  let history = JSON.parse(localStorage.getItem("history") || "{}");
-  let container = document.getElementById("historyContent");
-
-  container.innerHTML = "";
-
-  for (let date in history) {
-    let div = document.createElement("div");
-
-    let html = `<h3>${date}</h3><ul>`;
-
-    history[date].forEach((rep, i) => {
-      let num = rep.custom ? rep.custom : (i + 1);
-      html += `<li>champona${num} - ${rep.time}</li>`;
-    });
-
-    html += "</ul>";
-
-    div.innerHTML = html;
-    container.appendChild(div);
-  }
-}
-
-// Init
-checkNewDay();
-loadToday();
 </script>
 
 </body>
